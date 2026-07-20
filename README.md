@@ -41,7 +41,7 @@ ddalgi_project/
    ```
 
 3. **환경 설정 (Config)**
-   - MariaDB를 설치하고 `iot` 데이터베이스를 생성합니다.
+   - MariaDB를 설치하고 `ddalgi` 데이터베이스를 생성합니다.
    - `ddalgi_config.py` 파일에 DB 계정 정보와 MQTT 브로커 주소를 기입합니다.
    - 로컬에 Mosquitto MQTT 브로커를 실행합니다.
 
