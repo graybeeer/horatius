@@ -1,0 +1,17 @@
+# 1. 파이썬 가상환경 (용량이 매우 크고, 다른 컴퓨터에서는 작동안함)
+myenv/
+venv/
+env/
+
+# 2. 파이썬 캐시 파일 (실행 시 자동 생성되는 찌꺼기 파일)
+__pycache__/
+*.py[cod]
+*$py.class
+
+# 3. 에디터 및 OS 설정 파일
+.vscode/
+.DS_Store
+
+# 4. 🚨 [매우 중요] 비밀번호 및 중요 설정 파일
+# ddalgi_config.py
+.env
