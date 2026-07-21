@@ -13,6 +13,7 @@ db에 저장할 내용:
 
 1. 촬영한 이미지는 aws s3에 저장
 2. status가 이상있는 경우, 서버가 이를 감지하고 MQTT를 통해 안드로이드 앱으로 알람과 촬용이미지를 전송
+(multipart/form-data 형식으로 로봇에서 서버에 전송)
 3. 사용자가 일정시간마다 기록되는 내용 앱으로 확인가능
 4. 로봇 명령시
 ex)로봇 전원 종료: 안드로이드 앱->서버->mqtt->로봇
@@ -43,6 +44,20 @@ ddalgi/sensor/env
   "disease_count": 1
 }
 
+테스트 방법
 안드로이드 앱-postman
 로봇 센서- mqttx
-로 테스트
+
+현재까지 구현된 것
+로그인 (/login)
+회원가입 (/signup)
+30분마다 주기적 환경 및 통계 데이터 조회 (/api/env_logs)
+작물 이상 상태 촬영 로그 조회 (/api/crop_logs)
+로봇 작물 이미지 S3 업로드 및 DB 로깅 (/api/upload_crop)
+로봇 제어 명령 (앱 -> 서버 -> 로봇)
+mqtt 환경 및 통계 로그 (ddalgi/sensor/env/{user_id})
+mqtt 작물촬영로그 (ddalgi/robot/crop/{user_id})
+
+추가해야할것
+gps를 통해 구역 나누고 추가하기
+로봇이 서버에 데이터 주기적으로 전송(배터리, 현재위치, 로봇id)

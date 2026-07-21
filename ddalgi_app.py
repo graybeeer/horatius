@@ -5,6 +5,9 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from ddalgi_models import db, User, EnvLog, CropLog, Robot
 from ddalgi_mqtt_handler import init_mqtt, publish_message
 from datetime import datetime
+import boto3
+from werkzeug.utils import secure_filename
+import uuid
 
 '''
 서버 실행 및 안드로이드 앱 통신용 API(로그인, 명령, 조회)를 전담
@@ -182,7 +185,7 @@ def robot_command():
     }
     
     # 4. 지정된 로봇 전용 토픽으로 메시지 발행 (Pub)
-    # 💡 팁: 전체 로봇이 아닌 '특정 로봇'만 명령을 받도록 토픽에 로봇 ID를 넣는 것이 좋습니다.
+    # 전체 로봇이 아닌 '특정 로봇'만 명령을 받도록 토픽에 로봇 ID를 넣는 것이 좋습니다.
     topic = f"ddalgi/robot/{robot_id}/command"
     publish_message(topic, mqtt_message)
     
@@ -191,6 +194,89 @@ def robot_command():
         "status": "success", 
         "message": f"{robot_id} 로봇에 '{command}' 명령을 안전하게 전송했습니다."
     }), 200
+# ---------------------------------------------------------
+# API 엔드포인트: 로봇 작물 이미지 S3 업로드 및 DB 로깅 (/api/upload_crop)
+# ---------------------------------------------------------
+@app.route('/api/upload_crop', methods=['POST'])
+def upload_crop_image():
+    # 1. 파일이 요청에 포함되어 있는지 확인
+    if 'image' not in request.files:
+        return jsonify({"status": "error", "message": "이미지 파일이 없습니다."}), 400
+        
+    file = request.files['image']
+    if file.filename == '':
+        return jsonify({"status": "error", "message": "선택된 파일이 없습니다."}), 400
+
+    # 2. 로봇이 함께 보낸 텍스트 데이터들 (multipart/form-data 형식)
+    user_id = request.form.get('user_id')
+    robot_id = request.form.get('robot_id')
+    crop_type = request.form.get('crop_type')
+    status = request.form.get('status')
+    zone_id = request.form.get('zone_id')
+
+    if not user_id or not robot_id:
+        return jsonify({"status": "error", "message": "필수 파라미터 누락"}), 400
+
+    try:
+        # 3. AWS S3 클라이언트 셋팅
+        s3 = boto3.client(
+            's3',
+            aws_access_key_id=app.config['AWS_ACCESS_KEY_ID'],
+            aws_secret_access_key=app.config['AWS_SECRET_ACCESS_KEY'],
+            region_name=app.config['AWS_REGION']
+        )
+        
+        # 4. 파일 이름 겹침 방지를 위해 고유한 이름 생성 (안전한 파일명 + 난수)
+        filename = secure_filename(file.filename)
+        unique_filename = f"{uuid.uuid4().hex}_{filename}"
+        
+        # 5. S3에 파일 업로드
+        s3.upload_fileobj(
+            file,
+            app.config['S3_BUCKET_NAME'],
+            unique_filename,
+            ExtraArgs={'ContentType': file.content_type} # 웹에서 바로 보이도록 타입 지정
+        )
+        
+        # 6. 업로드된 파일의 접속 주소(URL) 생성
+        image_url = f"https://{app.config['S3_BUCKET_NAME']}.s3.{app.config['AWS_REGION']}.amazonaws.com/{unique_filename}"
+        
+        # 7. DB(CropLog)에 데이터와 이미지 주소 함께 저장
+        new_log = CropLog(
+            user_id=user_id,
+            robot_id=robot_id,
+            crop_type=crop_type,
+            status=status,
+            zone_id=zone_id,
+            image_url=image_url
+        )
+        db.session.add(new_log)
+        db.session.commit()
+        
+        # 만약 상태가 'disease'라면 즉시 앱으로 알람(사진 포함) 발송!
+        if status == 'disease':
+            alert_data = {
+                'log_id': new_log.log_id, # 방금 저장된 실제 DB 로그 번호
+                'user_id': user_id,
+                'robot_id': robot_id,
+                'zone': zone_id,
+                'crop': crop_type,
+                'status': status,
+                'message': f"{zone_id} 구역에서 문제가 발견되었습니다!",
+                'image_url': image_url  # S3에 올라간 사진 주소!
+            }
+            # MQTT로 앱에 알람 쏘기 (ddalgi_mqtt_handler.py에 있는 함수 사용)
+            target_topic = f"ddalgi/alert/disease/{user_id}"
+            publish_message(target_topic, alert_data)
+        
+        return jsonify({
+            "status": "success", 
+            "message": "이미지 업로드 및 로깅 완료",
+            "image_url": image_url
+        }), 200
+        
+    except Exception as e:
+        return jsonify({"status": "error", "message": f"업로드 실패: {str(e)}"}), 500
 # ---------------------------------------------------------
 # 테스트용 API: AI가 병충해를 감지했다고 가정하고 앱으로 알람 보내기
 # ---------------------------------------------------------
@@ -205,10 +291,11 @@ def test_alert():
         "zone": "A1",
         "crop": "딸기",
         "status": "disease",
-        "message": "병충해가 발견되었습니다!"
+        "message": "병충해가 발견되었습니다!",
+        "image_url": "https://본인의_버킷_이름.s3.ap-northeast-2.amazonaws.com/sample_image.jpg"
     }
     
-    # 🚀 2. 분리해둔 도우미 함수를 이용해 아주 간단하게 MQTT 메시지 발행(Pub)
+    # 2. 분리해둔 함수를 이용해 MQTT 메시지 발행(Pub)
     publish_message("ddalgi/alert/disease", alert_data)
     
     return jsonify({"status": "success", "message": "앱으로 알람 발송을 지시했습니다."})
