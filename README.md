@@ -13,7 +13,7 @@
 - **Framework**: Flask
 - **Database**: MariaDB, SQLAlchemy (ORM)
 - **Communication**: MQTT (Eclipse Mosquitto)
-- **Cloud/Storage**: AWS S3 (이미지 저장 예정)
+- **Cloud/Storage**: AWS S3 (이미지 저장)
 
 ## 📁 프로젝트 구조
 ```text
@@ -42,7 +42,8 @@ ddalgi_project/
 
 3. **환경 설정 (Config)**
    - MariaDB를 설치하고 `ddalgi` 데이터베이스를 생성합니다.
-   - `ddalgi_config.py` 파일에 DB 계정 정보와 MQTT 브로커 주소를 기입합니다.
+   - 프로젝트 폴더에 있는 .env.template 파일을 복사한 후 .template를 지워 .env 파일을 생성합니다.
+   - 생성된 .env 파일을 열고 데이터베이스 비밀번호, MQTT 주소, AWS 인증 키 등을 본인의 환경에 맞게 입력합니다.
    - 로컬에 Mosquitto MQTT 브로커를 실행합니다.
 
 4. **서버 실행**

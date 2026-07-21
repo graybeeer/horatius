@@ -23,6 +23,26 @@ ddalgi/sensor/env: 로봇이 측정한 온습도 데이터를 받는 토픽
 ddalgi/alert/disease: AI(YOLO)가 병충해를 발견했을 때 앱으로 알람을 보내는 토픽
 ddalgi/robot/control: 앱에서 로봇을 조종할 때 쓰는 토픽
 
+http://127.0.0.1:12345/signup
+{
+    "user_id": "U0411",
+    "password": "password1234445",
+    "name": "홍길삼동",
+    "phone_number": "010-1234-5628",
+    "country": "korea",
+    "email": "ho3ng@test.com"
+}
+
+ddalgi/sensor/env
+{
+  "user_id": "U003",
+  "temperature": 21.5,
+  "humidity": 35.0,
+  "ripe_count": 151,
+  "unripe_count": 5,
+  "disease_count": 1
+}
+
 안드로이드 앱-postman
 로봇 센서- mqttx
 로 테스트

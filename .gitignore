@@ -13,5 +13,4 @@ __pycache__/
 .DS_Store
 
 # 4. 🚨 [매우 중요] 비밀번호 및 중요 설정 파일
-# ddalgi_config.py
 .env
