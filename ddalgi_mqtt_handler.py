@@ -32,7 +32,7 @@ def on_message(client, userdata, msg):
                 new_crop_log = CropLog(
                     user_id=data.get("user_id"),
                     robot_id=data.get("robot_id"),
-                    crop_type=data.get("crop_type"),
+                    crop_id=data.get("crop_id"),
                     status=data.get("status"),
                     zone_id=data.get("zone_id")
                 )

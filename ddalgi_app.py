@@ -197,7 +197,7 @@ def get_crop_logs():
             "log_id": log.log_id,
             "robot_id": log.robot_id,
             "zone_id": log.zone_id,
-            "crop_type": log.crop_type,
+            "crop_id": log.crop_id,
             "status": log.status,
             "timestamp": log.timestamp.strftime("%Y-%m-%d %H:%M:%S")
         })
@@ -366,7 +366,7 @@ def upload_crop_image():
     # 2. 로봇이 함께 보낸 텍스트 데이터들 (multipart/form-data 형식)
     user_id = request.form.get('user_id')
     robot_id = request.form.get('robot_id')
-    crop_type = request.form.get('crop_type')
+    crop_id = request.form.get('crop_id')
     status = request.form.get('status')
     zone_id = request.form.get('zone_id')
 
@@ -401,7 +401,7 @@ def upload_crop_image():
         new_log = CropLog(
             user_id=user_id,
             robot_id=robot_id,
-            crop_type=crop_type,
+            crop_id=crop_id,  
             status=status,
             zone_id=zone_id,
             image_url=image_url
@@ -416,7 +416,7 @@ def upload_crop_image():
                 'user_id': user_id,
                 'robot_id': robot_id,
                 'zone': zone_id,
-                'crop': crop_type,
+                'crop': crop_id,
                 'status': status,
                 'message': f"{zone_id} 구역에서 문제가 발견되었습니다!",
                 'image_url': image_url  # S3에 올라간 사진 주소!

@@ -12,8 +12,8 @@ DB 테이블 구조(명세서)를 전담
 
 class CropProfile(db.Model):
     __tablename__ = 'crop_profiles'
-    crop_id = db.Column(db.String(50), primary_key=True)
-    crop_name = db.Column(db.String(50))     # 예: 설향딸기
+    crop_id = db.Column(db.String(50), primary_key=True) # 예: STRAWBERRY, TOMATO
+    crop_name = db.Column(db.String(50))     # 예: 딸기
     opt_temp_min = db.Column(db.Float)       # 최저 10도
     opt_temp_max = db.Column(db.Float)       # 최고 25도
     harvest_days = db.Column(db.Integer)     # 파종 후 90일 뒤 수확
@@ -79,7 +79,6 @@ class CropLog(db.Model):
     log_id = db.Column(db.Integer, primary_key=True, autoincrement=True) # 자동 증가 고유값
     user_id = db.Column(db.String(50), nullable=False)
     robot_id = db.Column(db.String(50), nullable=False)
-    crop_type = db.Column(db.String(50))  # 딸기, 가지, 참외 등. 나중에 삭제
     crop_id = db.Column(db.String(50))    # crop_profiles의 crop_id 참조
     status = db.Column(db.String(50))     # ripe, unripe, disease
     zone_id = db.Column(db.String(50))    # A1, C2 등
