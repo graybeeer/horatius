@@ -48,6 +48,7 @@ class Robot(db.Model):
     current_zone = db.Column(db.String(50))
     battery = db.Column(db.Integer)
     last_updated = db.Column(db.DateTime, default=datetime.now, onupdate=datetime.now)
+    operating_status = db.Column(db.String(20), default='OFFLINE') #ACTIVE, IDLE, OFFLINE
     
     # 위치 데이터 1: 실내용 (마커)
     last_marker_id = db.Column(db.Integer, nullable=True)

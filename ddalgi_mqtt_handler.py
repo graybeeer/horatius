@@ -26,7 +26,7 @@ def on_message(client, userdata, msg):
         data = json.loads(payload)
         
         with flask_app.app_context():
-            from ddalgi_models import CropLog, EnvLog
+            from ddalgi_models import CropLog, EnvLog, Robot
 
             if topic == "ddalgi/robot/crop":
                 new_crop_log = CropLog(
@@ -52,6 +52,39 @@ def on_message(client, userdata, msg):
                 db_instance.session.add(new_env_log)
                 db_instance.session.commit()
                 print("💾 [DB 저장 완료] 환경 및 통계 로그 기록됨")
+            # 로봇 상태 업데이트 토픽인지 확인
+            if topic.startswith("ddalgi/robot/status/"):
+                try:
+                    data = json.loads(payload)
+                    robot_id = data.get("robot_id")
+                    
+                    # Flask의 DB(SQLAlchemy)를 다른 스레드(MQTT)에서 쓰려면 app_context가 필요합니다.
+                    from ddalgi_app import app 
+                    with app.app_context():
+                        # DB에서 해당 로봇 찾기
+                        robot = Robot.query.filter_by(robot_id=robot_id).first()
+                        
+                        # 로봇이 DB에 없으면 새로 생성 (최초 등록)
+                        if not robot:
+                            robot = Robot(robot_id=robot_id, user_id="U001") # user_id는 임시 배정
+                            db_instance.session.add(robot)
+                        
+                        # 2. 하이브리드 데이터 업데이트 로직
+                        robot.battery = data.get("battery", robot.battery)
+                        robot.last_marker_id = data.get("marker_id", robot.last_marker_id)
+                        robot.operating_status = data.get("operating_status", robot.operating_status)
+                        robot.lat = data.get("lat", robot.lat)
+                        robot.lng = data.get("lng", robot.lng)
+                        robot.last_updated = datetime.now() # 통신 시간 갱신
+                        
+                        # (선택) 여기서 마커 번호나 GPS를 보고 current_zone을 계산하는 로직 추가 가능
+                        
+                        db_instance.session.commit()
+                        print(f"[MQTT] {robot_id} 로봇 상태 업데이트 완료 (배터리: {robot.battery}%)")
+                        
+                except Exception as e:
+                    print(f"[MQTT] 상태 업데이트 오류: {e}")
+            
 
     except Exception as e:
         print(f"❌ [DB 저장 에러] {e}")

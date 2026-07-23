@@ -96,6 +96,58 @@ def login():
     else:
         return jsonify({"status": "error", "message": "아이디 또는 비밀번호가 잘못되었습니다."}), 401
 # ---------------------------------------------------------
+# API 엔드포인트: 신규 로봇 등록 API
+# ---------------------------------------------------------
+@app.route('/api/robot/register', methods=['POST'])
+def register_robot():
+    # 1. 앱에서 보낸 JSON 데이터 받기
+    data = request.get_json()
+    
+    # 2. 필수 데이터 누락 검사
+    if not data or 'robot_id' not in data or 'user_id' not in data:
+        return jsonify({
+            "status": "error", 
+            "message": "robot_id와 user_id는 필수 항목입니다."
+        }), 400
+
+    robot_id = data['robot_id']
+    user_id = data['user_id']
+    
+    # 3. 중복 검사: 이미 DB에 있는 로봇인지 확인
+    existing_robot = Robot.query.filter_by(robot_id=robot_id).first()
+    
+    if existing_robot:
+        # HTTP 409(Conflict)는 데이터 충돌(중복)이 발생했을 때 쓰는 표준 코드입니다.
+        return jsonify({
+            "status": "error", 
+            "message": "이미 등록된 로봇 기기입니다."
+        }), 409
+
+    try:
+        # 4. 새로운 로봇 생성 및 초기값 세팅
+        new_robot = Robot(
+            robot_id=robot_id,
+            user_id=user_id,
+            operating_status='OFFLINE',  # 처음 등록하면 꺼져있는 상태로 시작
+            battery=100                  # (선택) 초기 배터리를 100으로 세팅
+        )
+        
+        # 5. DB에 저장
+        db.session.add(new_robot)
+        db.session.commit()
+        
+        return jsonify({
+            "status": "success", 
+            "message": f"로봇({robot_id})이 성공적으로 등록되었습니다."
+        }), 201  # HTTP 201(Created)은 데이터가 새로 생성되었을 때 쓰는 성공 코드입니다.
+        
+    except Exception as e:
+        db.session.rollback()  # 에러가 나면 하던 작업을 취소(롤백)해서 DB 고장을 막습니다.
+        return jsonify({
+            "status": "error", 
+            "message": f"서버 오류로 로봇 등록에 실패했습니다: {str(e)}"
+        }), 500
+# ---------------------------------------------------------
 # API 엔드포인트: 주기적 환경 및 통계 데이터 조회 (/api/env_logs)
 # ---------------------------------------------------------
 @app.route('/api/env_logs', methods=['GET'])
@@ -153,6 +205,53 @@ def get_crop_logs():
     return jsonify({
         "status": "success", 
         "data": result
+    }), 200
+# ---------------------------------------------------------
+# API 엔드포인트: 특정 로봇의 현재 상태 조회 API (보안 적용)
+# ---------------------------------------------------------
+@app.route('/api/robot/status/<robot_id>', methods=['GET'])
+def get_robot_status(robot_id):
+    # 1. 앱에서 보낸 유저 ID 꺼내기 (예: ?user_id=U001)
+    request_user_id = request.args.get('user_id')
+    
+    if not request_user_id:
+        return jsonify({"status": "error", "message": "요청자(user_id) 정보가 없습니다."}), 400
+
+    # 2. DB에서 로봇 정보 조회
+    robot = Robot.query.filter_by(robot_id=robot_id).first()
+    
+    if not robot:
+        return jsonify({"status": "error", "message": "등록되지 않은 로봇입니다."}), 404
+
+    # 3. 권한 체크 
+    # DB에 적힌 로봇의 진짜 주인(robot.user_id)과 지금 요청한 사람(request_user_id)이 다르면 차단
+    if robot.user_id != request_user_id:
+        # HTTP 403 상태 코드는 'Forbidden(접근 금지)'을 의미하는 국제 표준입니다.
+        return jsonify({"status": "error", "message": "이 로봇을 조회할 권한이 없습니다."}), 403
+
+    # 4. 통신 끊김(OFFLINE) 자동 판별 로직 (이전과 동일)
+    current_time = datetime.now()
+    final_status = robot.operating_status 
+    
+    if robot.last_updated:
+        time_diff = (current_time - robot.last_updated).total_seconds()
+        if time_diff > 30:
+            final_status = 'OFFLINE'
+    else:
+        final_status = 'OFFLINE'
+
+    # 5. 앱으로 전달할 데이터 포장
+    return jsonify({
+        "status": "success",
+        "data": {
+            "robot_id": robot.robot_id,
+            "operating_status": final_status, 
+            "battery": robot.battery,
+            "last_marker_id": robot.last_marker_id,
+            "lat": robot.lat,
+            "lng": robot.lng,
+            "last_updated": robot.last_updated.strftime('%Y-%m-%d %H:%M:%S') if robot.last_updated else None
+        }
     }), 200
 # ---------------------------------------------------------
 # API 엔드포인트: 로봇 제어 명령 (앱 -> 서버 -> 로봇)
