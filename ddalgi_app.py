@@ -2,7 +2,7 @@ from flask import Flask, request, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import generate_password_hash, check_password_hash
 
-from ddalgi_models import db, User, EnvLog, CropLog, Robot, Zone
+from ddalgi_models import db, User, EnvLog, CropLog, Robot, Zone, CropProfile, ZoneBatch
 from ddalgi_mqtt_handler import init_mqtt, publish_message
 from datetime import datetime
 import boto3
@@ -20,9 +20,7 @@ app.config.from_object('ddalgi_config.Config')
 # 불러온 db 객체에 현재 플라스크 앱(app)을 연동시킵니다.
 db.init_app(app)
 
-# 서버 실행 시 테이블이 없으면 자동 생성
-with app.app_context():
-    db.create_all()
+    
 
 
 # ---------------------------------------------------------
@@ -284,7 +282,7 @@ def robot_command():
     
     # 4. 지정된 로봇 전용 토픽으로 메시지 발행 (Pub)
     # 전체 로봇이 아닌 '특정 로봇'만 명령을 받도록 토픽에 로봇 ID를 넣는 것이 좋습니다.
-    topic = f"ddalgi/robot/{robot_id}/command"
+    topic = f"ddalgi/robot/command/{robot_id}"
     publish_message(topic, mqtt_message)
     
     # 5. 앱에게 정상 처리되었음을 응답
@@ -455,7 +453,58 @@ def test_alert():
     publish_message("ddalgi/alert/disease", alert_data)
     
     return jsonify({"status": "success", "message": "앱으로 알람 발송을 지시했습니다."})
+
+# ---------------------------------------------------------
+# 초기 작물 데이터 자동 등록 함수 (Seeding)
+# ---------------------------------------------------------
+def insert_default_crops():
+    if CropProfile.query.count() == 0:
+        print("[System] 작물 사전이 비어있습니다. 기본 데이터를 자동으로 생성합니다...")
+        
+        default_crops = [
+            CropProfile(
+                crop_id="strawberry",  # 🍓 딸기
+                crop_name="딸기", 
+                opt_temp_min=5.0, opt_temp_max=25.0, harvest_days=90, 
+                crop_description="추위에 강해 겨울~봄 하우스 재배에 적합합니다."
+            ),
+            CropProfile(
+                crop_id="eggplant",    # 🍆 가지
+                crop_name="가지", 
+                opt_temp_min=15.0, opt_temp_max=30.0, harvest_days=70, 
+                crop_description="고온성 작물로 여름철 비닐하우스 재배에 적합합니다."
+            ),
+            CropProfile(
+                crop_id="grape",       # 🍇 포도
+                crop_name="포도", 
+                opt_temp_min=15.0, opt_temp_max=30.0, harvest_days=120, 
+                crop_description="햇빛을 많이 필요로 하며 배수가 잘 되는 환경이 중요합니다."
+            ),
+            CropProfile(
+                crop_id="oriental_melon", # 🍈 참외
+                crop_name="참외", 
+                opt_temp_min=20.0, opt_temp_max=30.0, harvest_days=60, 
+                crop_description="고온 건조한 환경을 선호하는 여름철 대표 과채류입니다."
+            )
+        ]
+        
+        db.session.add_all(default_crops)
+        db.session.commit()
+        print("[System] 🌱 기본 작물(딸기, 가지, 포도, 참외) 사전 데이터 세팅 완료!")
+    else:
+        print("[System] 기존 작물 데이터가 존재하여 시딩을 건너뜁니다.")
+
+
+
+
+
 if __name__ == '__main__':
     init_mqtt(app, db)  
+    
+    # 서버 실행 시 테이블이 없으면 자동 생성
+    with app.app_context():
+        db.create_all()
+        insert_default_crops()
+        
     # 안드로이드 등 외부 기기에서 접속할 수 있도록 host='0.0.0.0' 설정
     app.run(host='0.0.0.0', port=12345,debug=True)

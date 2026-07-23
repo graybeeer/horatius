@@ -1,7 +1,8 @@
 db 테이블
 
-작물 사전 데이터: 작물id(고유값), 작물이름, 적정 최저온도, 적정 최고온도, 적정 습도
-작물 촬영시 저장되는 내용db: 로그id(고유값), 사용자id, 로봇id, 작물종류(딸기, 가지, 참외 등), 상태(ripe, unripe, disease), 구역(A1, C2, B1 등), 촬영시각
+작물 사전 데이터: 작물id(고유값), 작물이름, 적정 최저온도, 적정 최고온도, 적정 습도, 작물 대표 이미지, 작물 대표 설명
+(기본 작물-딸기, 가지, 포도, 참외)
+작물 촬영시 저장되는 내용db: 로그id(고유값), 사용자id, 로봇id, 작물id, 상태(ripe, unripe, disease), 구역(A1, C2, B1 등), 촬영시각
 일정시간마다 기록되는 내용: 로그id(고유값), 사용자id, 기록일시, 온도, 습도, ripe상태 작물 수, unripie상태 작물 수, disease상태 작물 수
 사용자 테이블: 사용자id(고유값), 이름, 전화번호, 나라
 구역 테이블: 구역 id(고유값), 사용자id, 구역이름, 마커, gps사각형 범위 4개
@@ -21,11 +22,6 @@ db 테이블
 ex)로봇 전원 종료: 안드로이드 앱->서버->mqtt->로봇
 5. 로봇 업데이트 30초 이상 이뤄지지 않을시, 로봇 꺼진것으로 취급
 
-mqtt토픽
-ddalgi/robot/status: 로봇의 현재 상태(배터리, 위치)를 주기적으로 받는 토픽
-ddalgi/sensor/env: 로봇이 측정한 온습도 데이터를 받는 토픽
-ddalgi/alert/disease: AI(YOLO)가 병충해를 발견했을 때 앱으로 알람을 보내는 토픽
-ddalgi/robot/control: 앱에서 로봇을 조종할 때 쓰는 토픽
 
 http://127.0.0.1:12345/signup
 {
@@ -67,7 +63,7 @@ ddalgi/robot/status/{user_id}
 30분마다 주기적 환경 및 통계 데이터 조회 (/api/env_logs)
 작물 이상 상태 촬영 로그 조회 (/api/crop_logs)
 로봇 작물 이미지 S3 업로드 및 DB 로깅 (/api/upload_crop)
-로봇 제어 명령 (앱 -> 서버 -> 로봇)
+로봇 제어 명령 (앱 -> 서버 -> 로봇) (/api/robot_command) (ddalgi/robot/command/{robot_id})
 mqtt 환경 및 통계 로그 (ddalgi/sensor/env/{user_id})
 mqtt 작물촬영로그 (ddalgi/robot/crop/{user_id})
 로봇이 서버에 데이터 주기적으로 전송:배터리, 현재위치, 로봇id, 상태 (ddalgi/robot/status/{user_id})
