@@ -2,7 +2,7 @@ from flask import Flask, request, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import generate_password_hash, check_password_hash
 
-from ddalgi_models import db, User, EnvLog, CropLog, Robot
+from ddalgi_models import db, User, EnvLog, CropLog, Robot, Zone
 from ddalgi_mqtt_handler import init_mqtt, publish_message
 from datetime import datetime
 import boto3
@@ -271,7 +271,6 @@ def robot_command():
         return jsonify({"status": "error", "message": "필수 파라미터가 누락되었습니다."}), 400
         
     # 2. (보안 검증) DB에서 이 로봇이 해당 사용자의 소유가 맞는지 확인
-    # Robot 테이블이 쿼리되려면 맨 위 import 영역에 Robot 모델도 추가해야 합니다.
     robot = Robot.query.filter_by(robot_id=robot_id, user_id=user_id).first()
     if not robot:
         return jsonify({"status": "error", "message": "권한이 없거나 존재하지 않는 로봇입니다."}), 403
@@ -293,6 +292,64 @@ def robot_command():
         "status": "success", 
         "message": f"{robot_id} 로봇에 '{command}' 명령을 안전하게 전송했습니다."
     }), 200
+# ---------------------------------------------------------
+# API 엔드포인트: 구역(Zone) 등록 및 수정 API
+# ---------------------------------------------------------
+@app.route('/api/zone/setup', methods=['POST'])
+def setup_zone():
+    # 1. 앱에서 보낸 구역 데이터(JSON) 받기
+    data = request.get_json()
+    
+    # 2. 필수 데이터 누락 검사
+    if not data or 'zone_id' not in data or 'user_id' not in data or 'zone_name' not in data:
+        return jsonify({
+            "status": "error", 
+            "message": "zone_id, user_id, zone_name은 필수 항목입니다."
+        }), 400
+
+    zone_id = data['zone_id']
+    user_id = data['user_id']
+    
+    try:
+        # 3. DB에 이미 만들어진 구역인지 확인
+        # (남의 구역을 덮어쓰면 안 되므로 user_id도 함께 조건으로 줍니다)
+        zone = Zone.query.filter_by(zone_id=zone_id, user_id=user_id).first()
+        
+        # 만약 DB에 없다면 새 구역 객체 생성!
+        if not zone:
+            zone = Zone(zone_id=zone_id, user_id=user_id)
+            db.session.add(zone)
+            action_msg = "등록"
+        else:
+            action_msg = "수정"
+
+        # 4. 하이브리드 구역 정보 업데이트 (있는 데이터만 덮어쓰기)
+        zone.zone_name = data.get('zone_name', zone.zone_name)
+        #zone.main_crop = data.get('main_crop', zone.main_crop)
+        
+        # 실내용: 마커 번호 리스트 (예: "1,2,3,4,5")
+        zone.marker_list = data.get('marker_list', zone.marker_list)
+        
+        # 실외용: GPS 사각형 범위
+        zone.min_lat = data.get('min_lat', zone.min_lat)
+        zone.max_lat = data.get('max_lat', zone.max_lat)
+        zone.min_lng = data.get('min_lng', zone.min_lng)
+        zone.max_lng = data.get('max_lng', zone.max_lng)
+        
+        # 5. DB에 최종 저장
+        db.session.commit()
+        
+        return jsonify({
+            "status": "success", 
+            "message": f"'{zone.zone_name}' 구역이 성공적으로 {action_msg}되었습니다."
+        }), 200
+        
+    except Exception as e:
+        db.session.rollback() # 에러 발생 시 DB 원상복구
+        return jsonify({
+            "status": "error", 
+            "message": f"서버 오류로 구역 설정에 실패했습니다: {str(e)}"
+        }), 500
 # ---------------------------------------------------------
 # API 엔드포인트: 로봇 작물 이미지 S3 업로드 및 DB 로깅 (/api/upload_crop)
 # ---------------------------------------------------------

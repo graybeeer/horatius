@@ -64,10 +64,9 @@ def on_message(client, userdata, msg):
                         # DB에서 해당 로봇 찾기
                         robot = Robot.query.filter_by(robot_id=robot_id).first()
                         
-                        # 로봇이 DB에 없으면 새로 생성 (최초 등록)
                         if not robot:
-                            robot = Robot(robot_id=robot_id, user_id="U001") # user_id는 임시 배정
-                            db_instance.session.add(robot)
+                            print(f"[MQTT] 로봇 ID {robot_id}를 DB에서 찾을 수 없습니다.")
+                            return
                         
                         # 2. 하이브리드 데이터 업데이트 로직
                         robot.battery = data.get("battery", robot.battery)

@@ -1,10 +1,12 @@
 db 테이블
-db에 저장할 내용: 
+
+작물 사전 데이터: 작물id(고유값), 작물이름, 적정 최저온도, 적정 최고온도, 적정 습도
 작물 촬영시 저장되는 내용db: 로그id(고유값), 사용자id, 로봇id, 작물종류(딸기, 가지, 참외 등), 상태(ripe, unripe, disease), 구역(A1, C2, B1 등), 촬영시각
 일정시간마다 기록되는 내용: 로그id(고유값), 사용자id, 기록일시, 온도, 습도, ripe상태 작물 수, unripie상태 작물 수, disease상태 작물 수
-사용자 테이블: 사용자id, 이름, 전화번호, 나라
-구역 테이블: 구역 id, 사용자id, 구역이름, 주로 있는 작물, 마커, gps사각형 범위 4개
-로봇 테이블: 로봇id, 사용자id, 현재 있는 구역, 배터리%, 현재 가장 가까운 마커, gps 위도와 경도
+사용자 테이블: 사용자id(고유값), 이름, 전화번호, 나라
+구역 테이블: 구역 id(고유값), 사용자id, 구역이름, 마커, gps사각형 범위 4개
+로봇 테이블: 로봇id(고유값), 사용자id, 현재 있는 구역, 배터리%, 현재 가장 가까운 마커, gps 위도와 경도
+배치된 작물 테이블: 배치id(고유값), 구역 id, 작물id, 심은날짜, 성장상태, 건강상태, 질병이름
 
 회원가입시 전송되는 json: 
 {user_id, password, name, phone_number, email, country}
@@ -61,6 +63,7 @@ ddalgi/robot/status/{user_id}
 현재까지 구현된 것
 로그인 (/login)
 회원가입 (/signup)
+로봇 등록(/api/robot/register)
 30분마다 주기적 환경 및 통계 데이터 조회 (/api/env_logs)
 작물 이상 상태 촬영 로그 조회 (/api/crop_logs)
 로봇 작물 이미지 S3 업로드 및 DB 로깅 (/api/upload_crop)
@@ -69,6 +72,7 @@ mqtt 환경 및 통계 로그 (ddalgi/sensor/env/{user_id})
 mqtt 작물촬영로그 (ddalgi/robot/crop/{user_id})
 로봇이 서버에 데이터 주기적으로 전송:배터리, 현재위치, 로봇id, 상태 (ddalgi/robot/status/{user_id})
 로봇 상태 조회(api/robot/status/{robot_id}?{user_id})
+구역 등록 및 수정 (/api/zone/setup)
 
 추가해야할것
 gps를 통해 구역 나누고 추가하기

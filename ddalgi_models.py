@@ -6,7 +6,21 @@ db = SQLAlchemy()
 '''
 DB 테이블 구조(명세서)를 전담
 '''
+# ---------------------------------------------------------
+# 작물 사전 데이터
+# ---------------------------------------------------------
 
+class CropProfile(db.Model):
+    __tablename__ = 'crop_profiles'
+    crop_id = db.Column(db.String(50), primary_key=True)
+    crop_name = db.Column(db.String(50))     # 예: 설향딸기
+    opt_temp_min = db.Column(db.Float)       # 최저 10도
+    opt_temp_max = db.Column(db.Float)       # 최고 25도
+    harvest_days = db.Column(db.Integer)     # 파종 후 90일 뒤 수확
+    # 앱 표시용
+    image_url = db.Column(db.String(255), nullable=True) # 아이콘이나 사진 주소
+    crop_description = db.Column(db.String(255), nullable=True) # 작물 설명
+    
 # ---------------------------------------------------------
 # 1. 사용자 테이블 (회원가입 시 저장되는 정보)
 # ---------------------------------------------------------
@@ -27,7 +41,7 @@ class Zone(db.Model):
     zone_id = db.Column(db.String(50), primary_key=True)
     user_id = db.Column(db.String(50), nullable=False) # 주인이 누구인지 표시
     zone_name = db.Column(db.String(50))
-    main_crop = db.Column(db.String(50))
+    #main_crop = db.Column(db.String(50))
     # 실내용 구역 판별 (예: "1,2,3,4,5")
     marker_list = db.Column(db.String(255), nullable=True) 
     
@@ -65,7 +79,8 @@ class CropLog(db.Model):
     log_id = db.Column(db.Integer, primary_key=True, autoincrement=True) # 자동 증가 고유값
     user_id = db.Column(db.String(50), nullable=False)
     robot_id = db.Column(db.String(50), nullable=False)
-    crop_type = db.Column(db.String(50))  # 딸기, 가지, 참외 등
+    crop_type = db.Column(db.String(50))  # 딸기, 가지, 참외 등. 나중에 삭제
+    crop_id = db.Column(db.String(50))    # crop_profiles의 crop_id 참조
     status = db.Column(db.String(50))     # ripe, unripe, disease
     zone_id = db.Column(db.String(50))    # A1, C2 등
     image_url = db.Column(db.String(255)) # S3 이미지 주소 저장
@@ -84,3 +99,23 @@ class EnvLog(db.Model):
     ripe_count = db.Column(db.Integer)
     unripe_count = db.Column(db.Integer)
     disease_count = db.Column(db.Integer)
+
+# ---------------------------------------------------------
+# 재배 테이블
+# ---------------------------------------------------------
+class ZoneBatch(db.Model):
+    __tablename__ = 'zone_batches'
+    batch_id = db.Column(db.String(50), primary_key=True) # 재배 번호 (예: 2026_A1_STRAWBERRY)
+    zone_id = db.Column(db.String(50), nullable=False)    # 어디에 심었나? (A1 구역)
+    crop_id = db.Column(db.String(50), nullable=False)    # 뭘 심었나? (설향딸기)
+    
+    planted_date = db.Column(db.DateTime, default=datetime.now) # 언제 심었나? (2026-07-23)
+    
+    # 예: SEEDLING(모종), GROWING(성장중), FLOWERING(개화기), HARVESTED(수확완료)
+    growth_status = db.Column(db.String(20), default='GROWING') 
+    
+    # 예: NORMAL(정상), WARNING(주의), DISEASED(질병발생)
+    health_status = db.Column(db.String(20), default='NORMAL')  
+    
+    # (선택) 질병에 걸렸다면 무슨 병인지 기록해두면 앱에 표시하기 좋습니다.
+    last_disease_name = db.Column(db.String(50), nullable=True) # 예: '흰가루병' (정상일 땐 null)
