@@ -18,6 +18,7 @@
 ## 📁 프로젝트 구조 (Project Structure)
 기능 확장에 대비하여 Flask Blueprint와 MQTT Handler 모듈화를 적용한 실무형 아키텍처입니다.
 
+```
 ddalgi_backend/
 ├── ddalgi_app.py             # 메인 서버 실행 및 블루프린트/MQTT 초기 설정
 ├── ddalgi_models.py          # 데이터베이스 테이블(ORM) 모델 설계도
@@ -34,6 +35,7 @@ ddalgi_backend/
 │
 ├── mqtt_handlers/            # [MQTT] 토픽별 DB 저장 및 비즈니스 로직 처리
 └── requirements.txt          # 파이썬 라이브러리 설치 의존성 목록
+```
 
 ## 로컬 실행 방법 (How to run)
 
