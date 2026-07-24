@@ -81,6 +81,8 @@ class CropLog(db.Model):
     robot_id = db.Column(db.String(50), nullable=False)
     crop_id = db.Column(db.String(50))    # crop_profiles의 crop_id 참조
     status = db.Column(db.String(50))     # ripe, unripe, disease
+    growth_status = db.Column(db.String(20), default='GROWING') 
+    health_status = db.Column(db.String(20), default='NORMAL')  
     zone_id = db.Column(db.String(50))    # A1, C2 등
     image_url = db.Column(db.String(255)) # S3 이미지 주소 저장
     timestamp = db.Column(db.DateTime, default=datetime.now) # 기록 시각 자동 저장
@@ -118,3 +120,18 @@ class ZoneBatch(db.Model):
     
     # (선택) 질병에 걸렸다면 무슨 병인지 기록해두면 앱에 표시하기 좋습니다.
     last_disease_name = db.Column(db.String(50), nullable=True) # 예: '흰가루병' (정상일 땐 null)
+    
+# ---------------------------------------------------------
+# 명령 이력 테이블 
+# ---------------------------------------------------------
+class CommandLog(db.Model):
+    __tablename__ = 'command_logs'
+    log_id = db.Column(db.Integer, primary_key=True, autoincrement=True) # 1, 2, 3... 자동 생성
+    
+    user_id = db.Column(db.String(50), nullable=False)   # 명령을 내린 사람
+    robot_id = db.Column(db.String(50), nullable=False)  # 명령을 받은 로봇
+    command = db.Column(db.String(50), nullable=False)   # 명령어 (예: STOP, MOVE)
+    target_zone = db.Column(db.String(50), nullable=True) # 목적지 (없을 수도 있으니 True)
+    
+    # 서버가 명령을 전달한 정확한 시간 (기본값: 현재 시간)
+    created_at = db.Column(db.DateTime, default=datetime.now)
