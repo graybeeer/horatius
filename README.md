@@ -15,15 +15,25 @@
 - **Communication**: MQTT (Eclipse Mosquitto)
 - **Cloud/Storage**: AWS S3 (이미지 저장)
 
-## 📁 프로젝트 구조
-```text
-ddalgi_project/
-├── ddalgi_app.py         # 메인 서버 실행 및 REST API 라우터
-├── ddalgi_models.py      # 데이터베이스 테이블(ORM) 모델 정의
-├── ddalgi_mqtt_handler.py # MQTT 메시지 발행/구독 및 DB 저장 로직
-├── ddalgi_config.py      # 환경 변수 및 DB/MQTT 접속 설정
-└── requirements.txt      # 파이썬 라이브러리 설치 목록
-```
+## 📁 프로젝트 구조 (Project Structure)
+기능 확장에 대비하여 Flask Blueprint와 MQTT Handler 모듈화를 적용한 실무형 아키텍처입니다.
+
+ddalgi_backend/
+├── ddalgi_app.py             # 메인 서버 실행 및 블루프린트/MQTT 초기 설정
+├── ddalgi_models.py          # 데이터베이스 테이블(ORM) 모델 설계도
+├── ddalgi_config.py          # DB, AWS S3, MQTT 등 환경 변수 설정
+├── ddalgi_mqtt_handler.py    # MQTT 통신 메인 라우터 (토픽별 수신 및 분류)
+│
+├── routes/                   # [HTTP] REST API 라우터 (목적별 블루프린트 분리)
+│   ├── auth.py               # 계정 관리 (회원가입, 로그인)
+│   ├── app_api/              # 📱 안드로이드 앱 통신 전용 API
+│   │   ├── command.py        # 기기/구역 등록 및 로봇 제어 명령 하달
+│   │   └── dashboard.py      # 환경/작물 로그, 기기 상태 조회 (대시보드용)
+│   └── robot_api/            # 🤖 하드웨어(로봇) 통신 전용 API
+│       └── vision.py         # 작물 사진 AWS S3 업로드 및 질병 감지 알람
+│
+├── mqtt_handlers/            # [MQTT] 토픽별 DB 저장 및 비즈니스 로직 처리
+└── requirements.txt          # 파이썬 라이브러리 설치 의존성 목록
 
 ## 로컬 실행 방법 (How to run)
 
