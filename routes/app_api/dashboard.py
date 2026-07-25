@@ -2,7 +2,7 @@ from flask import Blueprint, request, jsonify
 from datetime import datetime
 
 # 상위 폴더에 있는 모델 가져오기
-from ddalgi_models import db, EnvLog, CropLog, Robot
+from ddalgi_models import db, EnvLog, CropLog, Robot, Zone, ZoneBatch
 
 # 'dashboard_bp' 블루프린트 생성
 dashboard_bp = Blueprint('dashboard', __name__)
@@ -91,6 +91,7 @@ def get_robot_status(robot_id):
         "status": "success",
         "data": {
             "robot_id": robot.robot_id,
+            "robot_type": robot.robot_type,
             "operating_status": final_status, 
             "battery": robot.battery,
             "last_marker_id": robot.last_marker_id,
@@ -98,4 +99,52 @@ def get_robot_status(robot_id):
             "lng": robot.lng,
             "last_updated": robot.last_updated.strftime('%Y-%m-%d %H:%M:%S') if robot.last_updated else None
         }
+    }), 200
+    
+# ---------------------------------------------------------
+# API 엔드포인트: 해당 유저의 전체 구역(Zone) 및 재배 현황(Batch) 조회
+# ---------------------------------------------------------
+@dashboard_bp.route('/api/user/zones', methods=['GET'])
+def get_user_zones():
+    user_id = request.args.get('user_id')
+    
+    if not user_id:
+        return jsonify({"status": "error", "message": "user_id 파라미터가 필요합니다."}), 400
+
+    # 1. 해당 유저가 소유한 모든 구역(Zone) 조회
+    zones = Zone.query.filter_by(user_id=user_id).all()
+    
+    result = []
+    for zone in zones:
+        # 2. 해당 구역(zone_id)에 등록된 재배 이력(ZoneBatch)을 최신순으로 조회
+        batches = ZoneBatch.query.filter_by(zone_id=zone.zone_id)\
+                                 .order_by(ZoneBatch.planted_date.desc()).all()
+        
+        # 3. 재배 이력을 딕셔너리 리스트로 변환
+        batch_list = []
+        for batch in batches:
+            batch_list.append({
+                "batch_id": batch.batch_id,
+                "crop_id": batch.crop_id,
+                "planted_date": batch.planted_date.strftime("%Y-%m-%d %H:%M:%S") if batch.planted_date else None,
+                "growth_status": batch.growth_status,
+                "health_status": batch.health_status,
+                "disease_name": batch.disease_name
+            })
+            
+        # 4. 구역 정보 안에 재배 이력(batches)을 포함시켜 조립 (Nested JSON)
+        result.append({
+            "zone_id": zone.zone_id,
+            "zone_name": zone.zone_name,
+            "marker_list": zone.marker_list,
+            "min_lat": zone.min_lat,
+            "max_lat": zone.max_lat,
+            "min_lng": zone.min_lng,
+            "max_lng": zone.max_lng,
+            "batches": batch_list  # 🍓 핵심! 구역 안에 작물 데이터가 쏙 들어갑니다.
+        })
+        
+    return jsonify({
+        "status": "success", 
+        "data": result
     }), 200

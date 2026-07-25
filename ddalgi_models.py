@@ -59,6 +59,7 @@ class Robot(db.Model):
     __tablename__ = 'robots'
     robot_id = db.Column(db.String(50), primary_key=True)
     user_id = db.Column(db.String(50), nullable=False)
+    robot_type = db.Column(db.String(50), default='ddalgi_1')
     current_zone = db.Column(db.String(50))
     battery = db.Column(db.Integer)
     last_updated = db.Column(db.DateTime, default=datetime.now, onupdate=datetime.now)
@@ -118,7 +119,7 @@ class ZoneBatch(db.Model):
     health_status = db.Column(db.String(20), default='NORMAL')  
     
     # (선택) 질병에 걸렸다면 무슨 병인지 기록해두면 앱에 표시하기 좋습니다.
-    last_disease_name = db.Column(db.String(50), nullable=True) # 예: '흰가루병' (정상일 땐 null)
+    disease_name = db.Column(db.String(50), nullable=True) # 예: '흰가루병' (정상일 땐 null)
     
 # ---------------------------------------------------------
 # 명령 이력 테이블 
