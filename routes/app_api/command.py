@@ -113,12 +113,12 @@ def setup_zone():
         }), 500
 
 # ---------------------------------------------------------
-# API 엔드포인트: 로봇 제어 명령 (/api/robot_command)
+# API 엔드포인트: 로봇 제어 명령 (/api/robot/command)
 # ---------------------------------------------------------
 # start_patrol: 순찰 시작, 
 # stop: 순찰 중지
 # return_home: 귀환
-@command_bp.route('/api/robot_command', methods=['POST'])
+@command_bp.route('/api/robot/command', methods=['POST'])
 def robot_command():
     data = request.get_json()
     

@@ -13,7 +13,7 @@ vision_bp = Blueprint('vision', __name__)
 # ---------------------------------------------------------
 # API 엔드포인트: 로봇 작물 이미지 S3 업로드 및 DB 로깅
 # ---------------------------------------------------------
-@vision_bp.route('/api/upload_crop', methods=['POST'])
+@vision_bp.route('/api/upload/crop', methods=['POST'])
 def upload_crop_image():
     # 1. 파일이 요청에 포함되어 있는지 확인
     if 'image' not in request.files:

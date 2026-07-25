@@ -14,7 +14,7 @@ dashboard_bp = Blueprint('dashboard', __name__)
 # ---------------------------------------------------------
 # API 엔드포인트: 주기적 환경 및 통계 데이터 조회
 # ---------------------------------------------------------
-@dashboard_bp.route('/api/env_logs', methods=['GET'])
+@dashboard_bp.route('/api/logs/env', methods=['GET'])
 def get_env_logs():
     user_id = request.args.get('user_id')
     
@@ -39,7 +39,7 @@ def get_env_logs():
 # ---------------------------------------------------------
 # API 엔드포인트: 작물 이상 상태 촬영 로그 조회
 # ---------------------------------------------------------
-@dashboard_bp.route('/api/crop_logs', methods=['GET'])
+@dashboard_bp.route('/api/logs/crop', methods=['GET'])
 def get_crop_logs():
     user_id = request.args.get('user_id')
     

@@ -72,7 +72,7 @@ class Robot(db.Model):
     lng = db.Column(db.Float, nullable=True) # 경도
 
 # ---------------------------------------------------------
-# 4. 작물 촬영 로그 테이블 (로봇이 작물 사진을 찍었을 때 기록)
+# 4. 작물 촬영 로그 테이블 (로봇이 문제의 작물 사진을 찍었을 때는 이미지도 기록)
 # ---------------------------------------------------------
 class CropLog(db.Model):
     __tablename__ = 'crop_logs'
@@ -80,7 +80,6 @@ class CropLog(db.Model):
     user_id = db.Column(db.String(50), nullable=False)
     robot_id = db.Column(db.String(50), nullable=False)
     crop_id = db.Column(db.String(50))    # crop_profiles의 crop_id 참조
-    status = db.Column(db.String(50))     # ripe, unripe, disease
     growth_status = db.Column(db.String(20), default='GROWING') 
     health_status = db.Column(db.String(20), default='NORMAL')  
     zone_id = db.Column(db.String(50))    # A1, C2 등
