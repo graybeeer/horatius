@@ -27,7 +27,8 @@ def upload_crop_image():
     user_id = request.form.get('user_id')
     robot_id = request.form.get('robot_id')
     crop_id = request.form.get('crop_id')
-    status = request.form.get('status')
+    growth_status = request.form.get('growth_status')
+    health_status = request.form.get('health_status')
     zone_id = request.form.get('zone_id')
 
     if not user_id or not robot_id:
@@ -62,7 +63,8 @@ def upload_crop_image():
             user_id=user_id,
             robot_id=robot_id,
             crop_id=crop_id,  
-            status=status,
+            growth_status=growth_status,
+            health_status=health_status,
             zone_id=zone_id,
             image_url=image_url
         )
@@ -70,14 +72,15 @@ def upload_crop_image():
         db.session.commit()
         
         # 8. 만약 상태가 'disease'라면 즉시 앱으로 알람(사진 포함) 발송!
-        if status == 'disease':
+        if health_status == 'disease':
             alert_data = {
                 'log_id': new_log.log_id,
                 'user_id': user_id,
                 'robot_id': robot_id,
                 'zone': zone_id,
                 'crop': crop_id,
-                'status': status,
+                'growth_status': growth_status,
+                'health_status': health_status,
                 'message': f"{zone_id} 구역에서 문제가 발견되었습니다!",
                 'image_url': image_url  
             }
