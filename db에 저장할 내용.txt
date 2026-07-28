@@ -46,6 +46,7 @@ ddalgi/sensor/env
 ddalgi/robot/status/{user_id}
 {
   "robot_id": "R001",
+  "marker_id": "A1",
   "battery": 85,
   "operating_status": "ACTIVE",   "marker_id": 12,
   "lat": null,

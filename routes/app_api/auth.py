@@ -9,7 +9,7 @@ auth_bp = Blueprint('auth', __name__)
 # ---------------------------------------------------------
 # API 엔드포인트: 회원가입 (/signup)
 # ---------------------------------------------------------
-@auth_bp.route('/signup', methods=['POST'])
+@auth_bp.route('/api/auth/signup', methods=['POST'])
 def signup():
     # 안드로이드 앱에서 보낸 JSON 데이터 받기
     data = request.get_json()
@@ -52,7 +52,7 @@ def signup():
 # ---------------------------------------------------------
 # API 엔드포인트: 로그인 (/login)
 # ---------------------------------------------------------
-@auth_bp.route('/login', methods=['POST'])
+@auth_bp.route('/api/auth/login', methods=['POST'])
 def login():
     data = request.get_json()
     
@@ -75,5 +75,6 @@ def login():
                 "name": user.name
             }
         }), 200
+        
     else:
         return jsonify({"status": "error", "message": "아이디 또는 비밀번호가 잘못되었습니다."}), 401
