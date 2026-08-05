@@ -1,7 +1,7 @@
 from flask import Blueprint, request, jsonify
 from datetime import datetime
 
-from ddalgi_models import db, Robot, CommandLog, Zone
+from ddalgi_models import db, Robot, CommandLog, Zone, ZoneBatch
 from ddalgi_mqtt_handler import publish_message
 
 # 'command_bp' 블루프린트 생성
@@ -111,7 +111,56 @@ def setup_zone():
             "status": "error", 
             "message": f"서버 오류로 구역 설정에 실패했습니다: {str(e)}"
         }), 500
+# ---------------------------------------------------------
+# API 엔드포인트: 특정 구역(또는 전체)의 재배 데이터를 DB에서 완전 삭제(초기화)하는 API
+# ---------------------------------------------------------
+@command_bp.route('/api/zones/batch/manage', methods=['POST'])
+def manage_zone_batches():
+    data = request.get_json()
+    
+    user_id = data.get('user_id')
+    zone_id = data.get('zone_id') # 특정 구역 ID 또는 'ALL'
 
+    # 1. 필수값 체크 (이제 action 파라미터는 필요 없습니다)
+    if not user_id or not zone_id:
+        return jsonify({"status": "error", "message": "user_id, zone_id 값이 모두 필요합니다."}), 400
+
+    try:
+        # 2. 작업할 타겟 구역(Zone) ID 리스트 구하기
+        if zone_id.upper() != 'ALL':
+            # [특정 구역]
+            target_zone = Zone.query.filter_by(user_id=user_id, zone_id=zone_id).first()
+            if not target_zone:
+                return jsonify({"status": "error", "message": "해당 구역을 찾을 수 없거나 권한이 없습니다."}), 404
+            target_zone_ids = [target_zone.zone_id]
+        else:
+            # [전체 구역]
+            user_zones = Zone.query.filter_by(user_id=user_id).all()
+            if not user_zones:
+                return jsonify({"status": "error", "message": "사용자에게 등록된 구역이 없습니다."}), 404
+            target_zone_ids = [zone.zone_id for zone in user_zones]
+
+        # 3. 요청받은 구역들의 ZoneBatch 데이터 완전 삭제
+        batch_query = ZoneBatch.query.filter(ZoneBatch.zone_id.in_(target_zone_ids))
+        affected_rows = batch_query.delete(synchronize_session=False)
+        
+        # 4. DB 반영
+        db.session.commit()
+
+        # 5. 결과 반환
+        return jsonify({
+            "status": "success",
+            "message": f"총 {len(target_zone_ids)}개 구역에서 {affected_rows}건의 재배 데이터가 완전 삭제되었습니다.",
+            "data": {
+                "cleared_zones": target_zone_ids,
+                "affected_count": affected_rows
+            }
+        }), 200
+
+    except Exception as e:
+        db.session.rollback()
+        print(f"재배 데이터 삭제 에러: {e}")
+        return jsonify({"status": "error", "message": "서버 내부 오류가 발생했습니다."}), 500
 # ---------------------------------------------------------
 # API 엔드포인트: 로봇 제어 명령 (/api/robot/command)
 # ---------------------------------------------------------

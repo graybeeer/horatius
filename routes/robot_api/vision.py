@@ -2,9 +2,10 @@ from flask import Blueprint, request, jsonify, current_app
 import boto3
 from werkzeug.utils import secure_filename
 import uuid
+from datetime import datetime
 
 # 상위 폴더(ddalgi_backend)의 모듈 가져오기
-from ddalgi_models import db, CropLog
+from ddalgi_models import db, CropLog, ZoneBatch
 from ddalgi_mqtt_handler import publish_message
 
 # 'vision_bp' 블루프린트 생성
@@ -35,7 +36,7 @@ def upload_crop_image():
         return jsonify({"status": "error", "message": "필수 파라미터 누락"}), 400
 
     try:
-        # 3. AWS S3 클라이언트 셋팅 (⭐️ current_app.config 사용!)
+        # 3. AWS S3 클라이언트 셋팅 
         s3 = boto3.client(
             's3',
             aws_access_key_id=current_app.config['AWS_ACCESS_KEY_ID'],
@@ -69,6 +70,23 @@ def upload_crop_image():
             image_url=image_url
         )
         db.session.add(new_log)
+
+        # ZoneBatch에도 데이터 쌓기 (Insert)
+        if zone_id and crop_id:
+            # batch_id가 겹치지 않게 고유값 생성 (예: zone01_202608041530_a1b2)
+            time_str = datetime.now().strftime("%Y%m%d%H%M%S")
+            unique_batch_id = f"{zone_id}_{time_str}_{uuid.uuid4().hex[:4]}"
+            
+            new_batch = ZoneBatch(
+                batch_id=unique_batch_id,
+                zone_id=zone_id,
+                crop_id=crop_id,
+                growth_status=growth_status,
+                health_status=health_status,
+                disease_name="확인 필요(사진 참고)" if health_status and health_status.lower() == 'disease' else None
+            )
+            db.session.add(new_batch)
+
         db.session.commit()
         
         # 8. 만약 상태가 'disease'라면 즉시 앱으로 알람(사진 포함) 발송!
@@ -95,24 +113,3 @@ def upload_crop_image():
         
     except Exception as e:
         return jsonify({"status": "error", "message": f"업로드 실패: {str(e)}"}), 500
-
-# ---------------------------------------------------------
-# 테스트용 API (AI 감지 가상 테스트)
-# ---------------------------------------------------------
-@vision_bp.route('/test_alert', methods=['GET'])
-def test_alert():
-    alert_data = {
-        'log_id': 'log_001',
-        'user_id': 'test_user',
-        'robot_id': 'robot_001',
-        'timestamp': '2024-06-01T12:00:00Z',
-        "zone": "A1",
-        "crop": "딸기",
-        "status": "disease",
-        "message": "병충해가 발견되었습니다!",
-        "image_url": "https://본인의_버킷_이름.s3.ap-northeast-2.amazonaws.com/sample_image.jpg"
-    }
-    
-    publish_message("ddalgi/alert/disease/test_user", alert_data)
-    
-    return jsonify({"status": "success", "message": "앱으로 알람 발송을 지시했습니다."})

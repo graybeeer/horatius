@@ -97,12 +97,9 @@ class EnvLog(db.Model):
     timestamp = db.Column(db.DateTime, default=datetime.now) # 기록 시각 자동 저장
     temperature = db.Column(db.Float)
     humidity = db.Column(db.Float)
-    ripe_count = db.Column(db.Integer)
-    unripe_count = db.Column(db.Integer)
-    disease_count = db.Column(db.Integer)
 
 # ---------------------------------------------------------
-# 재배 테이블
+# 재배 테이블 (실시간)
 # ---------------------------------------------------------
 class ZoneBatch(db.Model):
     __tablename__ = 'zone_batches'
@@ -111,6 +108,7 @@ class ZoneBatch(db.Model):
     crop_id = db.Column(db.String(50), nullable=False)    # 뭘 심었나? (설향딸기)
     
     planted_date = db.Column(db.DateTime, default=datetime.now) # 언제 심었나? (2026-07-23)
+    updated_date = db.Column(db.DateTime, default=datetime.now, onupdate=datetime.now) # 최근 업데이트 시각
     
     # 예: SEEDLING(모종), GROWING(성장중), FLOWERING(개화기), HARVESTED(수확완료)
     growth_status = db.Column(db.String(20), default='GROWING') 

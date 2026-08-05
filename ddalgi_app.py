@@ -17,6 +17,7 @@ from routes.robot_api.vision import vision_bp     # 로봇의 사진 S3 업로�
 app = Flask(__name__)
 app.config.from_object('ddalgi_config.Config')
 
+
 # DB 객체에 현재 플라스크 앱(app) 연동
 db.init_app(app)
 

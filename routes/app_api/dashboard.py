@@ -28,10 +28,7 @@ def get_env_logs():
         "log_id": log.log_id,
         "timestamp": log.timestamp.strftime("%Y-%m-%d %H:%M:%S"),
         "temperature": log.temperature,
-        "humidity": log.humidity,
-        "ripe_count": log.ripe_count,
-        "unripe_count": log.unripe_count,
-        "disease_count": log.disease_count
+        "humidity": log.humidity
     } for log in logs]
         
     return jsonify({"status": "success", "data": result}), 200
