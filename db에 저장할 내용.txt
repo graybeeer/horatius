@@ -70,6 +70,8 @@ mqtt 작물촬영로그 (ddalgi/robot/crop/{user_id})
 로봇이 서버에 데이터 주기적으로 전송:배터리, 현재위치, 로봇id, 상태 (ddalgi/robot/status/{user_id})
 로봇 상태 조회(/api/robot/status/{robot_id}?{user_id})
 구역 등록 및 수정 (/api/zone/setup)
+특정 구역(또는 전체)의 재배 데이터를 DB에서 완전 삭제(초기화)하는 API(/api/zones/batch/manage)
+특정 작물(crop_id)의 모든 상태별 개수 자동 집계 (/api/user/crop/summary?user_id=$userId&crop_id=$cropId)
 
 추가해야할것
 gps를 통해 구역 나누고 추가하기

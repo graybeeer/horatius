@@ -1,5 +1,6 @@
 from flask import Blueprint, request, jsonify
 from datetime import datetime
+from sqlalchemy import func, case
 
 # 상위 폴더에 있는 모델 가져오기
 from ddalgi_models import db, EnvLog, CropLog, Robot, Zone, ZoneBatch
@@ -145,3 +146,55 @@ def get_user_zones():
         "status": "success", 
         "data": result
     }), 200
+
+# ---------------------------------------------------------
+# API 엔드포인트: 특정 작물(crop_id)의 모든 상태별 개수 자동 집계
+# ---------------------------------------------------------
+@dashboard_bp.route('/api/user/crop/summary', methods=['GET'])
+def get_single_crop_summary():
+    user_id = request.args.get('user_id')
+    crop_id = request.args.get('crop_id')
+
+    if not user_id or not crop_id:
+        return jsonify({"status": "error", "message": "user_id와 crop_id 파라미터가 모두 필요합니다."}), 400
+
+    try:
+        # 1. 자란 상태(growth_status)별 개수 집계 쿼리
+        growth_counts = db.session.query(
+            ZoneBatch.growth_status, 
+            func.count(ZoneBatch.batch_id)
+        ).join(Zone, Zone.zone_id == ZoneBatch.zone_id)\
+         .filter(Zone.user_id == user_id, ZoneBatch.crop_id == crop_id)\
+         .group_by(ZoneBatch.growth_status).all()
+
+        # 2. 건강 상태(health_status)별 개수 집계 쿼리
+        health_counts = db.session.query(
+            ZoneBatch.health_status, 
+            func.count(ZoneBatch.batch_id)
+        ).join(Zone, Zone.zone_id == ZoneBatch.zone_id)\
+         .filter(Zone.user_id == user_id, ZoneBatch.crop_id == crop_id)\
+         .group_by(ZoneBatch.health_status).all()
+
+        # 3. 조회된 데이터를 딕셔너리(JSON Object) 형태로 예쁘게 변환
+        # 예: {'GROWING': 15, 'FLOWERING': 5}
+        growth_summary = {status: count for status, count in growth_counts if status}
+        health_summary = {status: count for status, count in health_counts if status}
+
+        # 총 작물 개수는 growth_summary의 모든 value(개수)를 더하면 됩니다.
+        total_count = sum(growth_summary.values())
+
+        # 4. 결과 반환
+        return jsonify({
+            "status": "success",
+            "message": f"[{crop_id}] 작물 전체 상태 요약 조회 완료",
+            "data": {
+                "crop_id": crop_id,
+                "total_count": total_count,
+                "growth_status_counts": growth_summary, # 모든 자란 상태별 숫자
+                "health_status_counts": health_summary  # 모든 건강 상태별 숫자
+            }
+        }), 200
+
+    except Exception as e:
+        print(f"작물 통계 에러: {e}")
+        return jsonify({"status": "error", "message": "통계 데이터 조회 중 오류가 발생했습니다."}), 500

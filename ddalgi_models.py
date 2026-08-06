@@ -41,7 +41,6 @@ class Zone(db.Model):
     zone_id = db.Column(db.String(50), primary_key=True)
     user_id = db.Column(db.String(50), nullable=False) # 주인이 누구인지 표시
     zone_name = db.Column(db.String(50))
-    #main_crop = db.Column(db.String(50))
     # 실내용 구역 판별 (예: "1,2,3,4,5")
     marker_list = db.Column(db.String(255), nullable=True) 
     
@@ -94,6 +93,7 @@ class EnvLog(db.Model):
     __tablename__ = 'env_logs'
     log_id = db.Column(db.Integer, primary_key=True, autoincrement=True) # 자동 증가 고유값
     user_id = db.Column(db.String(50), nullable=False)
+    robot_id = db.Column(db.String(50)) #기록을 남긴 로봇 ID
     timestamp = db.Column(db.DateTime, default=datetime.now) # 기록 시각 자동 저장
     temperature = db.Column(db.Float)
     humidity = db.Column(db.Float)
