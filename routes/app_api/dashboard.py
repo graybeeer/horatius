@@ -3,7 +3,7 @@ from datetime import datetime
 from sqlalchemy import func, case
 
 # 상위 폴더에 있는 모델 가져오기
-from ddalgi_models import db, EnvLog, CropLog, Robot, Zone, ZoneBatch
+from ddalgi_models import db, EnvLog, CropLog, Robot, Zone, ZoneBatch,CommandLog
 
 # 'dashboard_bp' 블루프린트 생성
 dashboard_bp = Blueprint('dashboard', __name__)
@@ -56,7 +56,43 @@ def get_crop_logs():
     } for log in logs]
         
     return jsonify({"status": "success", "data": result}), 200
+# ---------------------------------------------------------
+# API 엔드포인트: 최근 로봇 제어 명령 로그 조회 (요청한 개수만큼)
+# ---------------------------------------------------------
+@dashboard_bp.route('/api/logs/command', methods=['GET'])
+def get_command_logs():
+    user_id = request.args.get('user_id')
+    
+    # 앱에서 'limit' 값을 안 보내면 기본값 20, 문자를 섞어 보내면 무시하고 20으로 자동 변환(type=int)
+    limit_count = request.args.get('limit', default=20, type=int)
+    
+    if not user_id:
+        return jsonify({"status": "error", "message": "user_id 파라미터가 필요합니다."}), 400
 
+    try:
+        # 1. limit_count 변수를 활용해 앱에서 원하는 개수만큼만 잘라서(limit) 가져옵니다.
+        logs = CommandLog.query.filter_by(user_id=user_id)\
+                               .order_by(CommandLog.timestamp.desc())\
+                               .limit(limit_count).all()
+        
+        # 2. JSON 형태로 예쁘게 변환
+        result = [{
+            "log_id": log.log_id,
+            "robot_id": log.robot_id,
+            "command": log.command,
+            "target_zone": log.target_zone,
+            "timestamp": log.timestamp.strftime("%Y-%m-%d %H:%M:%S") if log.timestamp else None
+        } for log in logs]
+            
+        return jsonify({
+            "status": "success", 
+            "message": f"최근 명령 로그 {len(result)}개 조회 완료",
+            "data": result
+        }), 200
+
+    except Exception as e:
+        print(f"명령 로그 조회 에러: {e}")
+        return jsonify({"status": "error", "message": "서버 내부 오류가 발생했습니다."}), 500
 # ---------------------------------------------------------
 # API 엔드포인트: 특정 로봇의 현재 상태 조회 API
 # ---------------------------------------------------------

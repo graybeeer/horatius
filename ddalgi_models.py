@@ -105,7 +105,7 @@ class ZoneBatch(db.Model):
     __tablename__ = 'zone_batches'
     batch_id = db.Column(db.String(50), primary_key=True) # 재배 번호 (예: 2026_A1_STRAWBERRY)
     zone_id = db.Column(db.String(50), nullable=False)    # 어디에 심었나? (A1 구역)
-    crop_id = db.Column(db.String(50), nullable=False)    # 뭘 심었나? (설향딸기)
+    crop_id = db.Column(db.String(50), nullable=False)    # 뭘 심었나? (딸기, 포도 등)
     
     planted_date = db.Column(db.DateTime, default=datetime.now) # 언제 심었나? (2026-07-23)
     updated_date = db.Column(db.DateTime, default=datetime.now, onupdate=datetime.now) # 최근 업데이트 시각
