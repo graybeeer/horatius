@@ -1,7 +1,7 @@
 from flask import Blueprint, request, jsonify
 from datetime import datetime
 
-from ddalgi_models import db, Robot, CommandLog, Zone, ZoneBatch
+from ddalgi_models import db, Robot, CommandLog, Zone, ZoneBatch, Marker
 from ddalgi_mqtt_handler import publish_message
 
 # 'command_bp' 블루프린트 생성
@@ -62,24 +62,20 @@ def register_robot():
         }), 500
 
 # ---------------------------------------------------------
-# API 엔드포인트: 구역(Zone) 등록 및 수정 API (/api/zone/setup)
+# API 엔드포인트: 구역(Zone) 등록 및 수정 API 
 # ---------------------------------------------------------
 @command_bp.route('/api/zone/setup', methods=['POST'])
 def setup_zone():
     data = request.get_json()
     
-    # 1. 필수 데이터 누락 검사
     if not data or 'zone_id' not in data or 'user_id' not in data or 'zone_name' not in data:
-        return jsonify({
-            "status": "error", 
-            "message": "zone_id, user_id, zone_name은 필수 항목입니다."
-        }), 400
+        return jsonify({"status": "error", "message": "zone_id, user_id, zone_name은 필수 항목입니다."}), 400
 
-    zone_id = data['zone_id']
+    zone_id = data['zone_id']                                                                                                                                                       
     user_id = data['user_id']
     
     try:
-        # 2. DB에 이미 만들어진 구역인지 확인 (Upsert 로직)
+        # DB에 이미 만들어진 구역인지 확인 (Upsert 로직)
         zone = Zone.query.filter_by(zone_id=zone_id, user_id=user_id).first()
         
         if not zone:
@@ -89,15 +85,13 @@ def setup_zone():
         else:
             action_msg = "수정"
 
-        # 3. 하이브리드 구역 정보 업데이트
+        # 구역 정보 업데이트 (marker_list는 별도 테이블로 분리되었으므로 제외)
         zone.zone_name = data.get('zone_name', zone.zone_name)
-        zone.marker_list = data.get('marker_list', zone.marker_list)
         zone.min_lat = data.get('min_lat', zone.min_lat)
         zone.max_lat = data.get('max_lat', zone.max_lat)
         zone.min_lng = data.get('min_lng', zone.min_lng)
         zone.max_lng = data.get('max_lng', zone.max_lng)
         
-        # 4. DB에 최종 저장
         db.session.commit()
         
         return jsonify({
@@ -107,10 +101,119 @@ def setup_zone():
         
     except Exception as e:
         db.session.rollback()
+        return jsonify({"status": "error", "message": f"구역 설정 실패: {str(e)}"}), 500
+
+# ---------------------------------------------------------
+# API 엔드포인트: 구역(Zone) 삭제 API (해당 구역의 마커도 자동 삭제)
+# ---------------------------------------------------------
+@command_bp.route('/api/zone/delete', methods=['POST'])
+def delete_zone():
+    data = request.get_json()
+    
+    user_id = data.get('user_id')
+    zone_id = data.get('zone_id')
+    
+    if not user_id or not zone_id:
+        return jsonify({"status": "error", "message": "user_id, zone_id가 필요합니다."}), 400
+
+    try:
+        zone = Zone.query.filter_by(zone_id=zone_id, user_id=user_id).first()
+        
+        if not zone:
+            return jsonify({"status": "error", "message": "해당 구역을 찾을 수 없거나 권한이 없습니다."}), 404
+            
+        # 1. 이 구역에 속한 마커(Marker)들 일괄 삭제
+        Marker.query.filter_by(zone_id=zone_id).delete(synchronize_session=False)
+        
+        # 2. 구역(Zone) 자체 삭제
+        db.session.delete(zone)
+        db.session.commit()
+        
         return jsonify({
-            "status": "error", 
-            "message": f"서버 오류로 구역 설정에 실패했습니다: {str(e)}"
-        }), 500
+            "status": "success", 
+            "message": f"'{zone.zone_name}' 구역과 연관된 모든 마커가 삭제되었습니다."
+        }), 200
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"status": "error", "message": f"구역 삭제 실패: {str(e)}"}), 500
+
+# ---------------------------------------------------------
+# API 엔드포인트: 마커(Marker) 등록 및 수정 API
+# ---------------------------------------------------------
+@command_bp.route('/api/marker/setup', methods=['POST'])
+def setup_marker():
+    data = request.get_json()
+    
+    # 1. 필수값 체크
+    marker_id = data.get('marker_id')
+    zone_id = data.get('zone_id')
+    
+    if not marker_id or not zone_id:
+        return jsonify({"status": "error", "message": "marker_id, zone_id는 필수 항목입니다."}), 400
+
+    try:
+        # 먼저 해당 zone이 실제로 존재하는지 확인하는 것도 좋은 방어 로직입니다.
+        zone = Zone.query.filter_by(zone_id=zone_id).first()
+        if not zone:
+            return jsonify({"status": "error", "message": "존재하지 않는 구역(Zone)입니다. 먼저 구역을 생성하세요."}), 404
+
+        # 2. 마커 존재 여부 확인 (Upsert 로직)
+        marker = Marker.query.filter_by(marker_id=marker_id).first()
+        
+        if not marker:
+            marker = Marker(marker_id=marker_id, zone_id=zone_id)
+            db.session.add(marker)
+            action_msg = "등록"
+        else:
+            action_msg = "수정"
+            # 구역을 다른 곳으로 옮길 수도 있으므로 업데이트 처리
+            marker.zone_id = zone_id 
+
+        # 3. GPS 정보가 같이 들어왔다면 업데이트 (실내용이라 안 쓸 수도 있지만 확장성을 위해 남겨둠)
+        marker.lat = data.get('lat', marker.lat)
+        marker.lng = data.get('lng', marker.lng)
+        
+        db.session.commit()
+        
+        return jsonify({
+            "status": "success", 
+            "message": f"마커({marker_id})가 성공적으로 {action_msg}되었습니다."
+        }), 200
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"status": "error", "message": f"마커 설정 실패: {str(e)}"}), 500
+
+# ---------------------------------------------------------
+# API 엔드포인트: 특정 마커(Marker) 1개 삭제 API
+# ---------------------------------------------------------
+@command_bp.route('/api/marker/delete', methods=['POST'])
+def delete_marker():
+    data = request.get_json()
+    marker_id = data.get('marker_id')
+    
+    if not marker_id:
+        return jsonify({"status": "error", "message": "삭제할 marker_id가 필요합니다."}), 400
+
+    try:
+        marker = Marker.query.filter_by(marker_id=marker_id).first()
+        
+        if not marker:
+            return jsonify({"status": "error", "message": "해당 마커를 찾을 수 없습니다."}), 404
+            
+        db.session.delete(marker)
+        db.session.commit()
+        
+        return jsonify({
+            "status": "success", 
+            "message": f"마커({marker_id})가 삭제되었습니다."
+        }), 200
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"status": "error", "message": f"마커 삭제 실패: {str(e)}"}), 500
+    
 # ---------------------------------------------------------
 # API 엔드포인트: 특정 구역(또는 전체)의 재배 데이터를 DB에서 완전 삭제(초기화)하는 API
 # ---------------------------------------------------------

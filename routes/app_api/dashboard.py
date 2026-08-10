@@ -19,11 +19,14 @@ dashboard_bp = Blueprint('dashboard', __name__)
 def get_env_logs():
     user_id = request.args.get('user_id')
     
+    # 앱에서 'limit' 값을 안 보내면 기본값 20, 문자를 섞어 보내면 무시하고 20으로 자동 변환(type=int)
+    limit_count = request.args.get('limit', default=20, type=int)
+    
     if not user_id:
         return jsonify({"status": "error", "message": "user_id 파라미터가 필요합니다."}), 400
 
-    # 해당 사용자의 최신 로그 10개를 시간 역순(최신순)으로 가져오기
-    logs = EnvLog.query.filter_by(user_id=user_id).order_by(EnvLog.timestamp.desc()).limit(10).all()
+    # 해당 사용자의 최신 로그 {limit_count}개를 시간 역순(최신순)으로 가져오기
+    logs = EnvLog.query.filter_by(user_id=user_id).order_by(EnvLog.timestamp.desc()).limit(limit_count).all()
     
     result = [{
         "log_id": log.log_id,
@@ -40,11 +43,14 @@ def get_env_logs():
 @dashboard_bp.route('/api/logs/crop', methods=['GET'])
 def get_crop_logs():
     user_id = request.args.get('user_id')
+
+    # 앱에서 'limit' 값을 안 보내면 기본값 20, 문자를 섞어 보내면 무시하고 20으로 자동 변환(type=int)
+    limit_count = request.args.get('limit', default=20, type=int)
     
     if not user_id:
         return jsonify({"status": "error", "message": "user_id 파라미터가 필요합니다."}), 400
 
-    logs = CropLog.query.filter_by(user_id=user_id).order_by(CropLog.timestamp.desc()).limit(10).all()
+    logs = CropLog.query.filter_by(user_id=user_id).order_by(CropLog.timestamp.desc()).limit(limit_count).all()
     
     result = [{
         "log_id": log.log_id,
@@ -128,6 +134,7 @@ def get_robot_status(robot_id):
             "robot_type": robot.robot_type,
             "operating_status": final_status, 
             "battery": robot.battery,
+            "current_zone": robot.current_zone,
             "last_marker_id": robot.last_marker_id,
             "lat": robot.lat,
             "lng": robot.lng,
