@@ -17,8 +17,8 @@ vision_bp = Blueprint('vision', __name__)
 @vision_bp.route('/api/upload/crop', methods=['POST'])
 def upload_crop_image():
     # 1. 파일이 요청에 포함되어 있는지 확인
-    if 'image' not in request.files:
-        return jsonify({"status": "error", "message": "이미지 파일이 없습니다."}), 400
+    #if 'image' not in request.files:
+    #    return jsonify({"status": "error", "message": "이미지 파일이 없습니다."}), 400
         
     file = request.files['image']
     if file.filename == '':

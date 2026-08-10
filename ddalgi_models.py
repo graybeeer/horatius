@@ -85,7 +85,7 @@ class CropLog(db.Model):
     user_id = db.Column(db.String(50), nullable=False)
     robot_id = db.Column(db.String(50), nullable=False)
     crop_id = db.Column(db.String(50))    # crop_profiles의 crop_id 참조
-    growth_status = db.Column(db.String(20), default='GROWING') 
+    growth_status = db.Column(db.Float, default=0.0)  # 예: 0.0~100.0 사이의 성장률(성장 정도)
     health_status = db.Column(db.String(20), default='NORMAL')  
     zone_id = db.Column(db.String(50))    # A1, C2 등
     image_url = db.Column(db.String(255)) # S3 이미지 주소 저장
@@ -115,8 +115,7 @@ class ZoneBatch(db.Model):
     planted_date = db.Column(db.DateTime, default=datetime.now) # 언제 심었나? (2026-07-23)
     updated_date = db.Column(db.DateTime, default=datetime.now, onupdate=datetime.now) # 최근 업데이트 시각
     
-    # 예: SEEDLING(모종), GROWING(성장중), FLOWERING(개화기), HARVESTED(수확완료)
-    growth_status = db.Column(db.String(20), default='GROWING') 
+    growth_status = db.Column(db.Float, default=0.0)  # 예: 0.0~100.0 사이의 성장률(성장 정도)
     
     # 예: NORMAL(정상), WARNING(주의), DISEASED(질병발생)
     health_status = db.Column(db.String(20), default='NORMAL')  

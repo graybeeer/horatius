@@ -189,9 +189,8 @@ def get_user_zones():
         "status": "success", 
         "data": result
     }), 200
-
 # ---------------------------------------------------------
-# API 엔드포인트: 특정 작물(crop_id)의 모든 상태별 개수 자동 집계
+# API 엔드포인트: 작물(crop_id) 요약 통계 (Float 버전)
 # ---------------------------------------------------------
 @dashboard_bp.route('/api/user/crop/summary', methods=['GET'])
 def get_single_crop_summary():
@@ -199,18 +198,24 @@ def get_single_crop_summary():
     crop_id = request.args.get('crop_id')
 
     if not user_id or not crop_id:
-        return jsonify({"status": "error", "message": "user_id와 crop_id 파라미터가 모두 필요합니다."}), 400
+        return jsonify({"status": "error", "message": "user_id, crop_id가 필요합니다."}), 400
 
     try:
-        # 1. 자란 상태(growth_status)별 개수 집계 쿼리
-        growth_counts = db.session.query(
-            ZoneBatch.growth_status, 
-            func.count(ZoneBatch.batch_id)
+        # 1. 성장도(Float)를 구간별로 나누고 평균을 구하는 똑똑한 쿼리
+        summary = db.session.query(
+            func.count(ZoneBatch.batch_id).label('total_count'),
+            func.avg(ZoneBatch.growth_status).label('avg_growth'), # 평균 성장률 계산
+            
+            # 0~30 미만: 모종 단계
+            func.sum(case((ZoneBatch.growth_status < 30.0, 1), else_=0)).label('seedling_count'),
+            # 30~80 미만: 성장 중
+            func.sum(case((ZoneBatch.growth_status.between(30.0, 79.9), 1), else_=0)).label('growing_count'),
+            # 80 이상: 수확 임박/완료
+            func.sum(case((ZoneBatch.growth_status >= 80.0, 1), else_=0)).label('ripe_count')
         ).join(Zone, Zone.zone_id == ZoneBatch.zone_id)\
-         .filter(Zone.user_id == user_id, ZoneBatch.crop_id == crop_id)\
-         .group_by(ZoneBatch.growth_status).all()
+         .filter(Zone.user_id == user_id, ZoneBatch.crop_id == crop_id).first()
 
-        # 2. 건강 상태(health_status)별 개수 집계 쿼리
+        # 건강 상태(health_status)는 기존처럼 글자이므로 Group By 유지
         health_counts = db.session.query(
             ZoneBatch.health_status, 
             func.count(ZoneBatch.batch_id)
@@ -218,26 +223,25 @@ def get_single_crop_summary():
          .filter(Zone.user_id == user_id, ZoneBatch.crop_id == crop_id)\
          .group_by(ZoneBatch.health_status).all()
 
-        # 3. 조회된 데이터를 딕셔너리(JSON Object) 형태로 예쁘게 변환
-        # 예: {'GROWING': 15, 'FLOWERING': 5}
-        growth_summary = {status: count for status, count in growth_counts if status}
         health_summary = {status: count for status, count in health_counts if status}
 
-        # 총 작물 개수는 growth_summary의 모든 value(개수)를 더하면 됩니다.
-        total_count = sum(growth_summary.values())
-
-        # 4. 결과 반환
+        # 결과 반환 (None 방어 처리 포함)
         return jsonify({
             "status": "success",
-            "message": f"[{crop_id}] 작물 전체 상태 요약 조회 완료",
+            "message": f"[{crop_id}] 통계 조회 완료",
             "data": {
                 "crop_id": crop_id,
-                "total_count": total_count,
-                "growth_status_counts": growth_summary, # 모든 자란 상태별 숫자
-                "health_status_counts": health_summary  # 모든 건강 상태별 숫자
+                "total_count": int(summary.total_count or 0),
+                "average_growth_percent": round(summary.avg_growth or 0.0, 1), # 예: 45.3%
+                "growth_ranges": {
+                    "0_to_30": int(summary.seedling_count or 0),
+                    "30_to_80": int(summary.growing_count or 0),
+                    "80_to_100": int(summary.ripe_count or 0)
+                },
+                "health_status_counts": health_summary
             }
         }), 200
 
     except Exception as e:
         print(f"작물 통계 에러: {e}")
-        return jsonify({"status": "error", "message": "통계 데이터 조회 중 오류가 발생했습니다."}), 500
+        return jsonify({"status": "error", "message": "통계 에러"}), 500
