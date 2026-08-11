@@ -278,6 +278,7 @@ def robot_command():
     robot_id = data.get('robot_id')
     command = data.get('command')
     target_zone = data.get('zone_id')
+    target_marker = data.get('marker_id')  
     
     # 1. 필수 데이터 누락 확인
     if not user_id or not robot_id or not command:
@@ -294,7 +295,8 @@ def robot_command():
             user_id=user_id,
             robot_id=robot_id,
             command=command,
-            target_zone=target_zone
+            target_zone=target_zone,
+            target_marker=target_marker  
         )
         db.session.add(new_log)
         db.session.commit()
@@ -303,6 +305,7 @@ def robot_command():
         mqtt_message = {
             "command": command,
             "target_zone": target_zone,
+            "target_marker": target_marker,  # ⭐️ 추가됨: 로봇에게 마커 ID도 전달
             "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         }
         

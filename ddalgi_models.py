@@ -134,6 +134,7 @@ class CommandLog(db.Model):
     robot_id = db.Column(db.String(50), nullable=False)  # 명령을 받은 로봇
     command = db.Column(db.String(50), nullable=False)   # 명령어 (예: STOP, MOVE)
     target_zone = db.Column(db.String(50), nullable=True) # 목적지 (없을 수도 있으니 True)
+    target_marker = db.Column(db.String(50), nullable=True)
     
     # 서버가 명령을 전달한 정확한 시간 (기본값: 현재 시간)
     created_at = db.Column(db.DateTime, default=datetime.now)

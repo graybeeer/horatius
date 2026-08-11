@@ -115,18 +115,17 @@ def handle_robot_status(data, flask_app, db_instance):
             new_current_zone = data.get("current_zone")
             if new_current_zone and robot.current_zone != new_current_zone:
                 print(f"📍 [구역 이동] {robot_id} 로봇이 이동했습니다! (이전: {robot.current_zone} -> 현재: {new_current_zone})")
-                # ⭐️ [수정됨] 새 구역으로 DB 값 변경 (이 코드가 없으면 로그가 무한 반복됩니다!)
+                # 새 구역으로 DB 값 변경 
                 robot.current_zone = new_current_zone 
 
             # 마커(Marker) 변경 감지 및 업데이트
             new_marker = data.get("marker_id")
             if new_marker and robot.last_marker_id != new_marker:
                 print(f"📍 [마커 이동] {robot_id} 로봇 마커 변경! (이전: {robot.last_marker_id} -> 현재: {new_marker})")
-                # 마커 업데이트는 기존에 잘 작성하셨던 아래쪽 코드에서 처리됩니다.
+                robot.last_marker_id = new_marker
             
             # 나머지 상태값 업데이트
             robot.battery = data.get("battery", robot.battery)
-            robot.last_marker_id = data.get("marker_id", robot.last_marker_id)
             robot.operating_status = data.get("operating_status", robot.operating_status)
             robot.lat = data.get("lat", robot.lat)
             robot.lng = data.get("lng", robot.lng)
