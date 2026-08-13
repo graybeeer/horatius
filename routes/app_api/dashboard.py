@@ -249,8 +249,8 @@ def get_single_crop_summary():
 # ---------------------------------------------------------
 # API 엔드포인트: 작물 프로필 정보 조회 (전체 조회 & 단일 조회)
 # ---------------------------------------------------------
-@app.route('/api/crops/inform', methods=['GET'])
-@app.route('/api/crops/inform/<string:crop_id>', methods=['GET'])
+@dashboard_bp.route('/api/crops/inform', methods=['GET'])
+@dashboard_bp.route('/api/crops/inform/<string:crop_id>', methods=['GET'])
 def get_crop_inform(crop_id=None):
     try:
         # 1. 특정 작물 ID가 입력된 경우 (단일 조회)
