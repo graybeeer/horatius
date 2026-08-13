@@ -111,20 +111,19 @@ def handle_robot_status(data, flask_app, db_instance):
                 print(f"[상태 담당] 로봇 ID {robot_id}를 DB에서 찾을 수 없습니다.")
                 return
 
-            # 구역(Zone) 변경 감지 및 업데이트
+            # 구역(Zone) 변경 감지 로그
             new_current_zone = data.get("current_zone")
             if new_current_zone and robot.current_zone != new_current_zone:
                 print(f"📍 [구역 이동] {robot_id} 로봇이 이동했습니다! (이전: {robot.current_zone} -> 현재: {new_current_zone})")
-                # 새 구역으로 DB 값 변경 
-                robot.current_zone = new_current_zone 
 
-            # 마커(Marker) 변경 감지 및 업데이트
+            # 마커(Marker) 변경 감지 로그
             new_marker = data.get("marker_id")
             if new_marker and robot.last_marker_id != new_marker:
                 print(f"📍 [마커 이동] {robot_id} 로봇 마커 변경! (이전: {robot.last_marker_id} -> 현재: {new_marker})")
-                robot.last_marker_id = new_marker
             
-            # 나머지 상태값 업데이트
+            # 모든 상태값 한 번에 업데이트 (구역, 마커 포함)
+            robot.current_zone = data.get("current_zone", robot.current_zone)
+            robot.last_marker_id = data.get("marker_id", robot.last_marker_id)
             robot.battery = data.get("battery", robot.battery)
             robot.operating_status = data.get("operating_status", robot.operating_status)
             robot.lat = data.get("lat", robot.lat)
