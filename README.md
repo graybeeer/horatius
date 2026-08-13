@@ -39,10 +39,9 @@ ddalgi_backend/
 
 ## 로컬 실행 방법 (How to run)
 
-1. **저장소 클론 및 폴더 이동**
+1. **저장소 클론**
    ```bash
-   git clone [깃허브 저장소 주소]
-   cd ddalgi_project
+   git clone https://github.com/graybeeer/horatius
    ```
 
 2. **가상환경 생성 및 라이브러리 설치**

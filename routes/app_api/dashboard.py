@@ -3,7 +3,7 @@ from datetime import datetime
 from sqlalchemy import func, case
 
 # 상위 폴더에 있는 모델 가져오기
-from ddalgi_models import db, EnvLog, CropLog, Robot, Zone, ZoneBatch,CommandLog
+from ddalgi_models import db, EnvLog, CropLog, Robot, Zone, ZoneBatch,CommandLog, CropProfile
 
 # 'dashboard_bp' 블루프린트 생성
 dashboard_bp = Blueprint('dashboard', __name__)
@@ -245,3 +245,65 @@ def get_single_crop_summary():
     except Exception as e:
         print(f"작물 통계 에러: {e}")
         return jsonify({"status": "error", "message": "통계 에러"}), 500
+
+# ---------------------------------------------------------
+# API 엔드포인트: 작물 프로필 정보 조회 (전체 조회 & 단일 조회)
+# ---------------------------------------------------------
+@app.route('/api/crops/inform', methods=['GET'])
+@app.route('/api/crops/inform/<string:crop_id>', methods=['GET'])
+def get_crop_inform(crop_id=None):
+    try:
+        # 1. 특정 작물 ID가 입력된 경우 (단일 조회)
+        if crop_id:
+            crop = CropProfile.query.filter_by(crop_id=crop_id).first()
+            
+            # DB에 해당 작물이 없는 경우
+            if not crop:
+                return jsonify({
+                    "status": "fail",
+                    "message": f"'{crop_id}'에 해당하는 작물을 찾을 수 없습니다."
+                }), 404
+                
+            crop_data = {
+                "crop_id": crop.crop_id,
+                "crop_name": crop.crop_name,
+                "opt_temp_min": crop.opt_temp_min,
+                "opt_temp_max": crop.opt_temp_max,
+                "harvest_days": crop.harvest_days,
+                "image_url": crop.image_url,
+                "crop_description": crop.crop_description
+            }
+            
+            return jsonify({
+                "status": "success",
+                "message": f"{crop.crop_name} 프로필을 불러왔습니다.",
+                "data": crop_data
+            }), 200
+
+        # 2. 아무 ID도 입력되지 않은 경우 (전체 조회)
+        else:
+            crops = CropProfile.query.all()
+            
+            crop_list = []
+            for crop in crops:
+                crop_list.append({
+                    "crop_id": crop.crop_id,
+                    "crop_name": crop.crop_name,
+                    "opt_temp_min": crop.opt_temp_min,
+                    "opt_temp_max": crop.opt_temp_max,
+                    "harvest_days": crop.harvest_days,
+                    "image_url": crop.image_url,
+                    "crop_description": crop.crop_description
+                })
+                
+            return jsonify({
+                "status": "success",
+                "message": "전체 작물 프로필을 성공적으로 불러왔습니다.",
+                "data": crop_list
+            }), 200
+            
+    except Exception as e:
+        return jsonify({
+            "status": "error",
+            "message": f"서버 오류가 발생했습니다: {str(e)}"
+        }), 500
