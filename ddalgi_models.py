@@ -137,4 +137,4 @@ class CommandLog(db.Model):
     target_marker = db.Column(db.String(50), nullable=True)
     
     # 서버가 명령을 전달한 정확한 시간 (기본값: 현재 시간)
-    created_at = db.Column(db.DateTime, default=datetime.now)
+    timestamp = db.Column(db.DateTime, default=datetime.now)

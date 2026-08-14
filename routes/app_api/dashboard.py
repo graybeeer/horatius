@@ -88,6 +88,7 @@ def get_command_logs():
             "robot_id": log.robot_id,
             "command": log.command,
             "target_zone": log.target_zone,
+            "target_marker": log.target_marker,
             "timestamp": log.timestamp.strftime("%Y-%m-%d %H:%M:%S") if log.timestamp else None
         } for log in logs]
             
