@@ -41,8 +41,8 @@ class Zone(db.Model):
     zone_id = db.Column(db.String(50), primary_key=True)
     user_id = db.Column(db.String(50), nullable=False) # 주인이 누구인지 표시
     zone_name = db.Column(db.String(50))
-    # 실내용 구역 판별 (예: "1,2,3,4,5") #따로 분리
-    # marker_list = db.Column(db.String(255), nullable=True) 
+    #구역 설명 변수
+    zone_description = db.Column(db.String(255), nullable=True)
     
     # 실외용 구역 판별 (GPS 사각형 범위)
     min_lat = db.Column(db.Float, nullable=True)

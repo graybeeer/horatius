@@ -71,7 +71,7 @@ def setup_zone():
     if not data or 'zone_id' not in data or 'user_id' not in data or 'zone_name' not in data:
         return jsonify({"status": "error", "message": "zone_id, user_id, zone_name은 필수 항목입니다."}), 400
 
-    zone_id = data['zone_id']                                                                                                                                                       
+    zone_id = data['zone_id']                                                                                                                                                                             
     user_id = data['user_id']
     
     try:
@@ -85,8 +85,11 @@ def setup_zone():
         else:
             action_msg = "수정"
 
-        # 구역 정보 업데이트 (marker_list는 별도 테이블로 분리되었으므로 제외)
+        # 구역 정보 업데이트 (새로 추가된 zone_description 포함!)
         zone.zone_name = data.get('zone_name', zone.zone_name)
+        zone.zone_description = data.get('zone_description', zone.zone_description) # ✅ 추가된 부분
+        
+        # 실외용 구역 판별 (GPS 사각형 범위)
         zone.min_lat = data.get('min_lat', zone.min_lat)
         zone.max_lat = data.get('max_lat', zone.max_lat)
         zone.min_lng = data.get('min_lng', zone.min_lng)

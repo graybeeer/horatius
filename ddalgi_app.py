@@ -60,7 +60,13 @@ if __name__ == '__main__':
     with app.app_context():
         db.create_all()
         insert_default_crops()
+
+    app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
+    'pool_pre_ping': True,  # 쿼리를 날리기 전에 DB가 살아있는지 찔러보기
+    'pool_recycle': 3600    # 1시간(3600초)마다 선을 스스로 안전하게 끊고 다시 연결하기
+    }
         
     # 3) Flask 서버 실행 (안드로이드 접속을 위한 0.0.0.0)
     # 🚨 MQTT 로그 중복(두 번씩 찍히는 현상) 방지를 위해 use_reloader=False
     app.run(host='0.0.0.0', port=12345, debug=True, use_reloader=False)
+    
