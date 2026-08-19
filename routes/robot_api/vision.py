@@ -58,7 +58,7 @@ def upload_crop_image():
                 ExtraArgs={'ContentType': file.content_type}
             )
             
-            image_url = f"https://{current_app.config['S3_BUCKET_NAME']}.s3.{current_app.config['AWS_REGION']}.amazonaws.com/{unique_filename}"
+            image_url = f"https://{current_app.config['S3_BUCKET_NAME']}.s3-{current_app.config['AWS_REGION']}.amazonaws.com/{unique_filename}"
         
         # 4. DB(CropLog)에 저장 (이미지가 없으면 image_url에 None이 들어감)
         new_log = CropLog(
