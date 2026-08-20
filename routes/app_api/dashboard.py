@@ -59,6 +59,7 @@ def get_crop_logs():
         "crop_id": log.crop_id,
         "health_status": log.health_status,  # ✅ DB 모델 이름과 똑같이 맞춤!
         "growth_status": log.growth_status,  # (필요하다면 이것도 추가)
+        "image_url": log.image_url,  # (필요하다면 이것도 추가)
         "timestamp": log.timestamp.strftime("%Y-%m-%d %H:%M:%S")
     } for log in logs]
         
